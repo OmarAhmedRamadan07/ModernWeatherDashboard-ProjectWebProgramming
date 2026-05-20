@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Weather Dashboard | SUT Project</title>
+    
+    <link rel="icon" type="image/png" href="images/icon.png">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+    
+    <div class="dashboard-container">
+        
+        <aside class="sidebar">
+            <h2>Saved Locations</h2>
+            <div id="saved-cities">
+            </div>
+        </aside>
+
+        <main class="main-content">
+            
+            <nav style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h1 style="margin-bottom: 0;">Weather Dashboard</h1>
+                <button id="theme-toggle" class="theme-toggle">☀️ Light Mode</button>
+            </nav>
+
+            <section class="search-section">
+                <form id="search-form">
+                    <label for="city-input" style="display: none;">Search City</label>
+                    <input type="text" id="city-input" placeholder="e.g. Cairo" required autocomplete="off">
+                    <button type="submit">Search</button>
+                </form>
+            </section>
+
+            <section id="current-weather">
+            </section>
+
+            <section id="map-section" style="margin-bottom: 40px;">
+                <div id="map"></div>
+            </section>
+
+            <section class="forecast-section">
+                <h3>5-Day Forecast</h3>
+                
+                <div id="forecast-cards" class="forecast-container">
+                </div>
+            </section>
+
+            <footer style="margin-top: 50px; text-align: center; color: var(--text-dim); font-size: 0.9rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                <p>Developed with ❤️ by: <strong>Ahmed Aldmrdash</strong>, <strong>Omar Ramadan</strong> & <strong>Shimaa Hussien</strong> | SUT</p>
+            </footer>
+
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
