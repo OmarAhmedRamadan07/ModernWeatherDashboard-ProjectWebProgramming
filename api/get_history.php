@@ -1,24 +1,11 @@
 <?php
-/*
- * =========================================================
- * API Endpoint: Fetch Recent Search History
- * Project: Modern Weather Dashboard (SUT)
- * 
- * Description: I created this endpoint to retrieve the latest 
- * searched cities from the database so we can dynamically 
- * update the sidebar without reloading the page.
- * =========================================================
- */
 
 // Including the database connection I configured in db.php
 include 'db.php';
 
-// We bring you the 10 most recently searched cities
-
 // Fetching the last 10 searches. I used 'ORDER BY id DESC' here 
 // to implement the "Latest on Top" logic for the UI.
 // Note for Shimaa: Please ensure the 'id' column remains AUTO_INCREMENT!
-
 $result = $conn->query("SELECT city_name FROM search_history ORDER BY id DESC LIMIT 10");
 
 // Initializing an empty array to hold the data before converting it to JSON

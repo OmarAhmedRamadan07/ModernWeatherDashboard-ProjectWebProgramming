@@ -1,84 +1,61 @@
-# 🌤️ Modern Weather Dashboard - SUT Project (Pro Edition)
+# 🌦️ Modern Weather Dashboard - SUT Project 2026
 
-## 📌 1. Project Overview
-The **Modern Weather Dashboard** is a fully-fledged, professional-grade Full-Stack Web Application. The application aims to provide accurate, real-time weather information for any city or geographical location worldwide. It features a modern Glassmorphism UI, interactive maps, dynamic backgrounds that change based on weather conditions, and a smart search history system stored in an actual database on a Live Server, making it easy for users to access their locations of interest.
-
----
-
-## 👥 2. Team Members & Roles
-This project was developed as a collaborative effort by **Elsewedy University of Technology (SUT)** students, with tasks professionally distributed as follows:
-
-### 👑 Ahmed Aldmrdash *(Team Leader & AI Engineer)*
-* Project management, team coordination, and repository management (GitHub).
-* Designing the User Interface (UI/UX), building the core structure (HTML/CSS), and implementing Glassmorphism.
-* Programming advanced features (Bonuses): Integrating interactive maps (Leaflet.js), the smart alert and advice system (SweetAlert2), and dynamic backgrounds (Real-life Images).
-* Deploying the website and database to a live hosting environment (InfinityFree Deployment).
-
-### 👨‍💻 Omar Ahmed Ramadan *(Frontend & API Integrator)*
-* Handling DOM Manipulation to display data dynamically on the interface.
-* Integrating the External API (OpenWeatherMap) using `async/await` and `fetch`.
-* Extracting and processing 5-day forecast data, and handling coordinates (Latitude & Longitude) to link them with the map.
-
-### 👩‍💻 Shimaa Hussien *(Backend & Database Administrator)*
-* Designing and creating the MySQL database on the local environment (XAMPP), then migrating it to the Production Server.
-* Programming the PHP scripts (`save_city.php` and `get_history.php`).
-* Managing data saving and retrieval operations, and implementing the "Latest on Top" algorithm to display recent searches and prevent data duplication.
+## 📌 Project Overview
+The **Modern Weather Dashboard** is an advanced, fully integrated web application developed as an enterprise-grade university project at Elsewedy University of Technology (SUT). Built completely from scratch, this application seamlessly bridges cutting-edge UI/UX design (Glassmorphism) with intelligent natural language processing, dynamic geolocation mapping, responsive data visualization, a secure backend architecture, and robust Progressive Web App (PWA) offline capabilities.
 
 ---
 
-## 🛠️ 3. Technologies Used
-* **Frontend:** HTML5, CSS3 (Custom Variables, Flexbox, Grid, Glassmorphism), Vanilla JavaScript (ES6+).
-* **External Libraries:** * `Leaflet.js`: For programming interactive maps.
-  * `SweetAlert2`: For the aesthetic alert system and smart notifications.
-* **Backend:** PHP 8.x.
-* **Database:** MySQL (Cloud Hosted).
-* **Version Control:** Git & GitHub.
-* **Hosting & Deployment:** InfinityFree (Live Server).
-* **API:** OpenWeatherMap API (Weather & Geocoding).
+## 👨‍💻 Developer
+* **Ahmed Aldmrdash** - *AI Engineer & Software Developer* (Sole Creator & Developer)
 
 ---
 
-## 📡 4. The API Details
-We relied on the OpenWeatherMap API as a reliable source for weather data.
+## 🚀 Comprehensive Features
 
-### Endpoints Used:
-* **Current Weather (By City):** `weather?q={city}` *(To fetch the current weather by city name).*
-* **Current Weather (By Coordinates):** `weather?lat={lat}&lon={lon}` *(To fetch weather when clicking any point on the map or when detecting user location).*
-* **5-Day Forecast:** `forecast?q={city}` *(To fetch the forecast for the next 5 days at 3-hour intervals).*
+### 🎨 1. UI/UX & Visual Experience
+* **Glassmorphic Design:** Elegant, modern interfaces utilizing backdrop blur filters, high-fidelity transparency, and glowing borders.
+* **Seamless Theme Toggling:** Smooth transition between Dark and Light modes, caching user preferences locally via `localStorage`.
+* **Live Cinematic Video Backgrounds:** Replaced traditional static imagery with loop-enabled HTML5 video layers that dynamically adjust to the current weather condition (e.g., light/heavy rain, overcast clouds, clear day, clear night, thunderstorms, snow, or mist).
+* **Smart Weather Assistant:** Integrated customized, reactive `SweetAlert2` toasts providing context-aware human recommendations based on temperature and climate criteria (e.g., "It's raining! Don't forget your umbrella ☂️").
 
-### Processing Mechanism:
-We used the Fetch API in JavaScript with `Promise.all` to fetch current weather and forecast data concurrently (Parallel Fetching) to reduce loading times. We also integrated loaders from SweetAlert to ensure a smooth user experience.
+### 🔊 2. Sensory & Micro-Interactions
+* **Responsive Feedback Audio:** Crisp audio cues triggered natively upon interactive clicks (searching, clicking the map, selecting sidebar items, or toggling themes).
+* **Ambient Soundscapes:** Atmospheric weather audio playing smoothly on an automated loop matching the specific meteorologic profile of the searched location (e.g., sound of rain, rolling thunder, or wind gusts), utilizing clever browser policy workarounds to bypass autoplay blocks.
 
----
+### 🧠 3. Natural Language Processing & Intelligent Search
+* **Smart Voice Search:** Integrated hands-free vocal city searching using the `Web Speech API`, localized natively for Arabic and English spoken commands.
+* **Text Normalization Algorithm:** Implemented a robust pre-processing script that sanitizes text inputs by automatically stripping unnecessary prefixes/suffixes (like "مدينة" or "محافظة") and rectifying common character ambiguities (such as Arabic Taa Marbuta vs. Haa) to maximize external API query success rates.
+* **Geocoding Validation Layer:** Couples raw user entries with the `Nominatim OpenStreetMap Geocoding API` to resolve typos, ambiguous names, and regional accents into precise coordinates prior to fetching weather payloads.
 
-## ⚙️ 5. Advanced Project Features & Logic
-Several professional programming concepts (Logic) were implemented, making the application stand out from traditional projects:
+### 🗺️ 4. Advanced Mapping & Geolocation
+* **Hyper-Local Automated Detection:** Prompts for native browser geolocation coordinates upon application load, running a reverse geocoding script to display real-time hyper-local conditions immediately.
+* **Interactive Leaflet.js Grid:** High-performance, fully localized map rendering custom tile coordinates with clean, responsive pop-up markers summarizing pinpoint regional temperatures upon click.
 
-* **Auto-Detect Location:** Upon opening the app, `navigator.geolocation` is used to automatically detect the user's location and fetch their city's weather instantly without needing to search.
-* **Interactive Map "Click to Explore":** Leaflet.js was integrated to display an interactive map with a "FlyTo" animation towards the searched city. More importantly, the user can click on any point worldwide on the map, and the site will automatically fetch its coordinates, display its weather, and update the entire interface.
-* **Dynamic Real-Life Backgrounds:** The weather condition retrieved from the API (e.g., clear, rain, snow, mist) is analyzed to change the entire site background to high-quality, real-life images. This includes handling edge cases like tornadoes and dust, and adding CSS overlays that adjust opacity based on the lighting to ensure text readability.
-* **Smart AI-like Advice:** Utilizing SweetAlert2 to show a smart Toast Notification that lasts for 10 seconds. It analyzes the weather and provides advice to the user (e.g., *"It's raining, don't forget your umbrella!"* or *"It's hot, drink plenty of water"*).
-* **Dark/Light Mode Toggle:** A theme-switching feature that adjusts text colors, glass panels, and backgrounds for eye comfort, saving the preference in `localStorage`.
-* **Auto-Sorting History:** When searching, the city is saved in the database. If the search is repeated, the server deletes the old record and inserts it as the latest search (Latest on Top) so it always appears at the top of the sidebar.
+### 📊 5. Predictive Analytics & Visualizations
+* **Aggregated 5-Day Extended Forecast:** Custom data-parsing engine that samples 40 separate three-hour data intervals from the server and clusters them into distinct, structured daily maximum/minimum temperature blocks.
+* **Interactive Charting Engines:** Harnesses `Chart.js` to draw clean, curved vector line plots comparing multi-day temperature shifts, styled adaptively to remain fully legible across Dark and Light mode background variations.
 
----
+### 💾 6. Database Synchronization & Backend Architecture
+* **Relational History Tracking:** Keeps full persistent server records via an object-oriented `MySQLi` PHP layer (`save_city.php`, `get_history.php`).
+* **"Latest on Top" Caching Logic:** Custom SQL query execution that avoids heavy index restructuring by instantly deleting older duplicated names and pushing incoming city entries as fresh, auto-incremented primary keys.
 
-## 🗄️ 6. Database Architecture & Deployment
-The project was upgraded from a local XAMPP environment to a real Production Server for easy access.
-
-* **Database Name:** `weather_app` (Hosted on InfinityFree).
-* **Main Table:** `search_history`
-  * `id`: INT (Primary Key, Auto Increment).
-  * `city_name`: VARCHAR(255) (To store the city name).
-  * `search_date`: TIMESTAMP (Automatically records the search time for sorting purposes).
-
-### Client-Server Communication:
-The Frontend sends a `POST` request to `api/save_city.php` to store the city. It then requests `api/get_history.php` to fetch the updated history and display it directly without reloading the page (AJAX-like behavior).
+### 📴 7. Progressive Web App (PWA) & Offline Resiliency
+* **Native Desktop/Mobile Installation:** Explicit configuration of a web app `manifest.json` asset bundle allowing users to install the system natively on Windows, macOS, Android, or iOS devices.
+* **Asynchronous Service Worker Caching:** Employs a standalone `sw.js` pipeline to intercept fetch events and cache critical styling scripts, fonts, and structures. In the event of network disruption, the script gracefully serves cached snapshots from the `localStorage` data store along with an informative warning banner.
 
 ---
 
-## 🐙 7. GitHub Workflow & Live Deployment
-To ensure a proper engineering workflow, the following steps were taken:
+## 🛠️ Technical Stack
+* **Frontend Core:** HTML5, CSS3 (Custom Variables, Flexbox, CSS Grid, Advanced Keyframe Animations), JavaScript (ES6+, Async/Await, concurrent `Promise.all` networking).
+* **Backend Core:** PHP 8, MySQL Relational Database (XAMPP Sandbox Architecture).
+* **External API Gateways:** OpenWeatherMap API, Nominatim OpenStreetMap Reverse Geocoding engine.
+* **Frameworks & Utilities:** Leaflet.js maps, Chart.js, SweetAlert2.
+* **PWA Assets:** Service Workers (`sw.js`), Web App Manifest schemas (`manifest.json`).
 
-* **Version Control:** A repository was created on GitHub to track all changes, with clear Commit messages for every added feature (e.g., *Added Leaflet Map, Integrated SweetAlert2*).
-* **Live Deployment:** All project files (HTML, CSS, JS, PHP) and the database (MySQL) were uploaded to the free InfinityFree hosting. The `db.php` connection file was configured to link with the cloud server, making the project available for academic review via a direct, live URL.
+---
+
+## ⚙️ Installation & Deployment Sandbox
+1. Clone or download this repository directly into your local server directory (e.g., XAMPP's `htdocs`).
+2. Import the provided database structure `sql_code.sql` using a manager like `phpMyAdmin`.
+3. Open `db.php` and update the database link credentials (host, user, password, database name, and port).
+4. Run your local server and open the directory on a secure, modern browser (Google Chrome or Microsoft Edge highly recommended for full Speech-to-Text API compatibility).

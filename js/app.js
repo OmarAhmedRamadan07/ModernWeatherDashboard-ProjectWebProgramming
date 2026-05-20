@@ -1,33 +1,10 @@
-/*
- * =========================================================
- * Modern Weather Dashboard - Core JavaScript Logic
- * Project: SUT 2026 
- * Description: I designed this architecture to handle external API
- * requests (OpenWeatherMap & Nominatim), manage the DOM state, 
- * integrate Leaflet.js maps, and sync with our PHP backend.
-
- * =========================================================
- */
-
-// =========================================================
-// 1. Configuration & Global Variables
-// =========================================================
 const API_KEY = 'dc6995fce2cbfe9781f339cb5d7a2288';
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
-// I initialized the Leaflet map variables globally so we can update them later without re-instantiating the map
 let map;
 let marker;
+let forecastChartInstance = null; // Add this line with the Global Variables above
 
-
-// =========================================================
-// 2. UI & Theming Helper Functions
-// =========================================================
-
-/*
- * I created this function to map standard API weather conditions 
- * to our custom, high-quality local images. This gives our dashboard a premium feel.
- */
 function getWeatherIcon(condition) {
     const desc = condition.toLowerCase();
     const path = "images/"; 
@@ -55,72 +32,153 @@ function getWeatherIcon(condition) {
     return `${path}icon.png`; // Fallback icon
 }
 
+const weatherSounds = {
+    'storm-heavy': new Audio('Audios/storm-heavy.mp3'),
+    'storm-light': new Audio('Audios/storm-light.mp3'),
+    'thunder-only': new Audio('Audios/thunder-only.mp3'),
+    
+    'rain-heavy': new Audio('Audios/rain-heavy.mp3'),
+    'rain-medium': new Audio('Audios/rain-medium.mp3'),
+    'rain-light': new Audio('Audios/rain-light.mp3'),
+    'rain-shower': new Audio('Audios/rain-shower.mp3'),
+    
+    'snow': new Audio('Audios/snow.mp3'),
+    'sand': new Audio('Audios/sand.mp3'),
+    'wind-strong': new Audio('Audios/wind-strong.mp3'),
+    'wind-light': new Audio('Audios/wind-light.mp3'),
+    'clear-day': new Audio('Audios/clear-day.mp3'),
+    'clear-night': new Audio('Audios/clear-night.mp3'),
+    
+    'click': new Audio('Audios/click.mp3'),
+    'success': new Audio('Audios/success.mp3'),
+    'error': new Audio('Audios/error.mp3') 
+};
+
+const loopSounds = ['storm-heavy', 'storm-light', 'thunder-only', 'rain-heavy', 'rain-medium', 'rain-light', 'rain-shower', 'snow', 'sand', 'wind-strong', 'wind-light', 'clear-day', 'clear-night'];
+loopSounds.forEach(key => {
+    if(weatherSounds[key]) weatherSounds[key].loop = true;
+});
+
+let currentPlayingSound = null;
+
+// 🟢 [New update: Unified click sound function for easy recall from anywhere] 🟢
+function playClickSound() {
+    if (weatherSounds && weatherSounds['click']) {
+        weatherSounds['click'].currentTime = 0;
+        weatherSounds['click'].play().catch(err => {
+            console.log("Error playing click sound:", err);
+        });
+    }
+}
+
+function playWeatherSound(data) {
+    if (currentPlayingSound) {
+        currentPlayingSound.pause();
+        currentPlayingSound.currentTime = 0;
+    }
+
+    const code = data.weather[0].id;
+    let soundKey = '';
+
+    if (code >= 200 && code <= 202) soundKey = 'storm-heavy';
+    else if (code >= 210 && code <= 232) soundKey = 'storm-light';
+    else if (code >= 300 && code <= 321) soundKey = 'rain-light';
+    else if (code >= 500 && code <= 501) soundKey = 'rain-light';
+    else if (code >= 502 && code <= 504) soundKey = 'rain-heavy';
+    else if (code >= 511 && code <= 531) soundKey = 'rain-shower';
+    else if (code >= 600 && code <= 622) soundKey = 'snow';
+    else if (code >= 701 && code <= 781) soundKey = 'sand';
+    else if (code === 800) {
+        soundKey = data.weather[0].icon.includes('n') ? 'clear-night' : 'clear-day';
+    }
+    else if (code === 801 || code === 802) soundKey = 'wind-light';
+    else if (code === 803 || code === 804) soundKey = 'wind-strong';
+
+    if (soundKey && weatherSounds[soundKey]) {
+        currentPlayingSound = weatherSounds[soundKey];
+        currentPlayingSound.play().catch(err => {
+            console.log("Warning: The browser prevents automatic operation until the user interacts.", err);
+        });
+    }
+}
+
 /*
- * I wrote this logic to dynamically switch the entire body background 
- * based on real-time weather conditions.
- */
-const updateBackground = (condition) => {
-    const desc = condition.toLowerCase();
-    const body = document.body;
+* 🟢 Background video change function based on weather and new names 🟢
+*/
+const updateBackground = (data) => {
+    const desc = data.weather[0].description.toLowerCase();
+    const icon = data.weather[0].icon;// We take the icon to determine if it's day (d) or night (n)
+    const bgVideo = document.getElementById('bg-video');
+    
+    let videoSrc = 'videos/clear-day.mp4'; // Default video in case no condition matches
 
-    // Resetting previous classes before applying a new one
-    body.classList.remove('bg-clear', 'bg-clouds', 'bg-rain', 'bg-thunderstorm', 'bg-snow', 'bg-mist');
-
+    // Select the appropriate video based on the names in the images folder and the new API descriptions
     if (desc.includes("clear")) {
-        body.classList.add('bg-clear');
-    } else if (desc.includes("cloud") || desc.includes("overcast")) {
-        body.classList.add('bg-clouds');
-    } else if (desc.includes("rain") || desc.includes("drizzle") || desc.includes("squall")) {
-        body.classList.add('bg-rain');
-    } else if (desc.includes("thunderstorm") || desc.includes("tornado")) {
-        body.classList.add('bg-thunderstorm'); 
-    } else if (desc.includes("snow") || desc.includes("sleet")) {
-        body.classList.add('bg-snow');
-    } else if (desc.includes("mist") || desc.includes("fog") || desc.includes("haze") || desc.includes("dust") || desc.includes("sand") || desc.includes("smoke") || desc.includes("ash")) {
-        body.classList.add('bg-mist'); 
-    } else {
-        body.classList.add('bg-clouds'); 
+        videoSrc = icon.includes('n') ? 'videos/clear-night.mp4' : 'videos/clear-day.mp4';
+    } 
+    else if (desc.includes("few clouds") || desc.includes("scattered clouds")) {
+        videoSrc = 'videos/clouds-light.mp4';
+    } 
+    else if (desc.includes("cloud") || desc.includes("overcast")) {
+        videoSrc = 'videos/clouds-heavy.mp4';
+    } 
+    else if (desc.includes("light rain") || desc.includes("drizzle")) {
+        videoSrc = 'videos/rain-light.mp4';
+    } 
+    else if (desc.includes("rain") || desc.includes("squall")) {
+        videoSrc = 'videos/rain-heavy.mp4';
+    } 
+    else if (desc.includes("thunderstorm") || desc.includes("tornado")) {
+        videoSrc = 'videos/storm.mp4';
+    } 
+    else if (desc.includes("snow") || desc.includes("sleet")) {
+        videoSrc = 'videos/snow.mp4';
+    } 
+    else if (desc.includes("mist") || desc.includes("fog") || desc.includes("haze") || desc.includes("dust") || desc.includes("sand") || desc.includes("smoke") || desc.includes("ash")) {
+        videoSrc = 'videos/fog.mp4';
+    } 
+    else {
+        videoSrc = 'videos/clouds-light.mp4';
+    }
+
+    // Play video if path changes
+    if (!bgVideo.src.includes(videoSrc)) {
+        bgVideo.src = videoSrc;
+        bgVideo.play().catch(e => console.log("Error playing background video:", e));
     }
 };
 
-
-// =========================================================
-// 3. Map & Geolocation Features
-// =========================================================
-
-/*
- * I integrated Leaflet.js here. I also implemented a "Click to Explore" feature 
- * utilizing OpenStreetMap's Nominatim API for hyper-local reverse geocoding, 
- * bypassing OpenWeatherMap's generic city limitations.
- */
 const updateMap = (lat, lon, temp, city) => {
     if (!map) {
-        // Initialize map on first load
+        // Map preparation
         map = L.map('map').setView([lat, lon], 10);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
+        
+        // 🟢 Use the CartoDB Voyager map (free, fast, and looks like Google Maps) 🟢
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors, © CARTO'
         }).addTo(map);
 
-        // Listening for user clicks to fetch hyper-local data
+        // Listen to map clicks
         map.on('click', async (e) => {
-            const { lat, lng } = e.latlng;
+            playClickSound(); // Play click sound
             
+            const { lat, lng } = e.latlng;
             if(typeof Swal !== 'undefined') Swal.showLoading();
 
             try {
-                // Fetching precise village/street name using Reverse Geocoding
-                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=ar`);
+                // 🟢 Using the OpenWeather Geocoding API (more accurate and linked to weather conditions) 🟢
+                const geoRes = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lng}&limit=1&appid=${API_KEY}`);
                 const geoData = await geoRes.json();
 
-                // I prioritize smaller geographic entities (like villages/neighborhoods) over large cities
-                const preciseLocation = geoData.address.village || 
-                                        geoData.address.suburb || 
-                                        geoData.address.neighbourhood || 
-                                        geoData.address.hamlet || 
-                                        geoData.address.city_district || 
-                                        geoData.name || "منطقة غير معروفة";
+                // Extract the location name (prioritize Arabic name if available, otherwise use English)
+                let preciseLocation = "Unknown Area";
+                if (geoData && geoData.length > 0) {
+                    preciseLocation = (geoData[0].local_names && geoData[0].local_names.ar) 
+                                        ? geoData[0].local_names.ar 
+                                        : geoData[0].name;
+                }
 
-                // Fetching weather data specifically for these exact coordinates
+                // Fetch weather and forecast data
                 const weatherRes = await fetch(`${BASE_URL}/weather?lat=${lat}&lon=${lng}&units=metric&appid=${API_KEY}`);
                 const weatherData = await weatherRes.json();
                 
@@ -128,10 +186,8 @@ const updateMap = (lat, lon, temp, city) => {
                 const forecastData = await forecastRes.json();
 
                 if (weatherData && forecastData) {
-                    // Injecting our precise location name before passing it to Omar's DOM functions
-                    weatherData.name = preciseLocation; 
-
-                    displayCurrentWeather(weatherData);
+                    weatherData.name = preciseLocation; // Update the location name with the one we fetched
+                    displayCurrentWeather(weatherData); // Update weather, sound, and background
                     displayForecast(forecastData);
                     saveCityToHistory(preciseLocation);
                 }
@@ -143,7 +199,7 @@ const updateMap = (lat, lon, temp, city) => {
             }
         });
     } else {
-        // Smooth flying animation if the map is already loaded
+        // Smooth flight animation to the new location
         map.flyTo([lat, lon], 10, {
             animate: true,
             duration: 1.5 
@@ -154,15 +210,12 @@ const updateMap = (lat, lon, temp, city) => {
         map.removeLayer(marker);
     }
 
+    // Add marker and information window
     marker = L.marker([lat, lon]).addTo(map)
         .bindPopup(`<strong style="color:#0284c7;">${city}</strong><br>Temp: ${Math.round(temp)}°C`)
         .openPopup();
 };
 
-/*
- * Auto-detect user's location on startup using the browser's Geolocation API.
- * I also attached the Nominatim reverse-geocoding here for better accuracy.
- */
 const getUserLocation = () => {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(async (position) => {
@@ -170,83 +223,156 @@ const getUserLocation = () => {
             const lon = position.coords.longitude;
 
             try {
-                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=ar`);
-                const geoData = await geoRes.json();
-                const preciseLocation = geoData.address.village || geoData.address.suburb || geoData.address.neighbourhood || geoData.name;
+                if(typeof Swal !== 'undefined') Swal.showLoading();
 
-                const response = await fetch(`${BASE_URL}/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`);
-                const data = await response.json();
+                // 1. Fetch the precise location name
+                const geoRes = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`);
+                const geoData = await geoRes.json();
                 
-                if (data) {
-                    data.name = preciseLocation; 
-                    displayCurrentWeather(data);
-                    saveCityToHistory(preciseLocation); // Sync with Shimaa's DB
+                let preciseLocation = "My current location";
+                if (geoData && geoData.length > 0) {
+                    preciseLocation = (geoData[0].local_names && geoData[0].local_names.ar) 
+                                        ? geoData[0].local_names.ar 
+                                        : geoData[0].name;
                 }
+
+                // 🟢 2. Fetch current weather and forecast data with some (like search system) 🟢
+                const [currentRes, forecastRes] = await Promise.all([
+                    fetch(`${BASE_URL}/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`),
+                    fetch(`${BASE_URL}/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`)
+                ]);
+
+                const currentData = await currentRes.json();
+                const forecastData = await forecastRes.json();
+                
+                if (currentData && forecastData) {
+                    currentData.name = preciseLocation; 
+                    
+                    // Update the interface completely
+                    displayCurrentWeather(currentData); // Update weather, sound, and background
+                    displayForecast(forecastData);     // 👈 This was missing (Update cards, table, and chart)
+                    
+                    saveCityToHistory(preciseLocation); 
+                }
+
+                if(typeof Swal !== 'undefined') Swal.close();
+
             } catch (error) {
-                console.warn("Could not fetch hyper-local address on load.");
+                console.warn("Could not fetch local data on load:", error);
+                if(typeof Swal !== 'undefined') Swal.close();
             }
         });
     }
 };
 
-
-// =========================================================
-// 4. Core Weather Fetching Logic
-// =========================================================
-
-/*
- * I used Promise.all here to fetch both current weather and the 5-day forecast concurrently.
- * This significantly reduces the loading time for the user.
- */
-const fetchWeatherData = async (city) => {
+const fetchWeatherData = async (cityInputStr) => {
     try {
+        // Show loading icon to improve user experience
+        if(typeof Swal !== 'undefined') Swal.showLoading();
+
+        // 1. Text cleaning: Removing extra words that may be added by voice search
+        let cleanedCity = cityInputStr.replace(/^(مدينة|محافظة|ولاية)\s/g, '').trim();
+
+        // 2. Smart city search (converting names to coordinates)
+        // We use Nominatim because it accurately understands spelling errors and names in Arabic.
+        const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cleanedCity)}&format=json&limit=1&accept-language=ar`);
+        const geoData = await geoRes.json();
+
+        // Checking for the city
+        if (!geoData || geoData.length === 0) {
+            throw new Error("City not found");
+        }
+
+        const lat = geoData[0].lat;
+        const lon = geoData[0].lon;
+        const preciseLocation = geoData[0].name || cleanedCity;
+
         const [currentRes, forecastRes] = await Promise.all([
-            fetch(`${BASE_URL}/weather?q=${city}&units=metric&appid=${API_KEY}`),
-            fetch(`${BASE_URL}/forecast?q=${city}&units=metric&appid=${API_KEY}`)
+            fetch(`${BASE_URL}/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`),
+            fetch(`${BASE_URL}/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`)
         ]);
 
         if (!currentRes.ok || !forecastRes.ok) {
-            // I integrated SweetAlert2 for a modern error popup instead of the ugly default alert
-            if(typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Oops...',
-                    text: 'City not found. Please check the spelling!',
-                    confirmButtonColor: '#38bdf8',
-                    background: document.body.classList.contains('light-mode') ? '#fff' : '#1e293b',
-                    color: document.body.classList.contains('light-mode') ? '#0f172a' : '#f8fafc'
-                });
-            } else {
-                alert("City not found. Please check the spelling.");
-            }
-            return false;
+            throw new Error("Weather API failed");
         }
 
         const currentData = await currentRes.json();
         const forecastData = await forecastRes.json();
 
+        // Update the city name with the refined name found by the search engine
+        currentData.name = preciseLocation;
+
+        // 4. Save data to localStorage to support Offline Mode
+        localStorage.setItem('lastWeatherData', JSON.stringify(currentData));
+        localStorage.setItem('lastForecastData', JSON.stringify(forecastData));
+
+        // 5. Update UI, charts, and sounds
         displayCurrentWeather(currentData);
         displayForecast(forecastData);
         
+        if(typeof Swal !== 'undefined') Swal.close();
         return true; 
+        
     } catch (error) {
-        console.error("JavaScript Execution Error:", error);
+        if(typeof Swal !== 'undefined') Swal.close();
+
+        // Play error sound
+        if (weatherSounds && weatherSounds['error']) {
+            weatherSounds['error'].currentTime = 0;
+            weatherSounds['error'].play().catch(e => console.log(e));
+        }
+
+        // Attempt to fetch the latest stored data if the user is offline
+        const lastData = localStorage.getItem('lastWeatherData');
+        const lastForecast = localStorage.getItem('lastForecastData');
+
+        if (lastData && lastForecast) {
+            displayCurrentWeather(JSON.parse(lastData));
+            displayForecast(JSON.parse(lastForecast));
+            
+            Swal.fire({
+                icon: 'warning',
+                title: 'You are offline',
+                text: 'Could not fetch new data, displaying the last saved data.',
+                background: document.body.classList.contains('light-mode') ? '#fff' : '#1e293b',
+                color: document.body.classList.contains('light-mode') ? '#0f172a' : '#f8fafc'
+            });
+            return true;
+        }
+
+        // In case everything fails and there is no stored data
+        console.error("Search Error:", error);
+        if(typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Sorry',
+                text: 'Could not find the city, please check the name and your internet connection.',
+                confirmButtonColor: '#38bdf8',
+                background: document.body.classList.contains('light-mode') ? '#fff' : '#1e293b',
+                color: document.body.classList.contains('light-mode') ? '#0f172a' : '#f8fafc'
+            });
+        }
         return false;
     }
 };
 
-
-// =========================================================
-// 5. DOM Manipulation & Display Methods
-// =========================================================
-
 const displayCurrentWeather = (data) => {
-    updateBackground(data.weather[0].description);
+    // 1. Play success sound
+    if (weatherSounds && weatherSounds['success']) {
+        weatherSounds['success'].currentTime = 0;
+        weatherSounds['success'].play().catch(e=>console.log(e));
+    }
     
+    // 2. Play weather sound
+    playWeatherSound(data);
+
+    // 🟢 3. The fix for the issue: passing the full (data) object, not just the text 🟢
+    updateBackground(data);
+    
+    // 4. Display data on screen
     const weatherSection = document.getElementById('current-weather');
     const iconUrl = getWeatherIcon(data.weather[0]?.description || '');
     
-    // I added Intl.DisplayNames to translate standard country codes into full names dynamically
     let fullCountryName = data.sys.country;
     try {
         const regionNames = new Intl.DisplayNames(['en'], {type: 'region'});
@@ -268,9 +394,10 @@ const displayCurrentWeather = (data) => {
         </div>
     `;
 
+    // 5. Update map
     updateMap(data.coord.lat, data.coord.lon, data.main.temp, data.name);
 
-    // AI-like Smart Advice System based on weather metrics
+    // 6. Display weather advice
     let advice = "";
     let adviceIcon = "info";
 
@@ -288,7 +415,6 @@ const displayCurrentWeather = (data) => {
         adviceIcon = "success";
     }
 
-    // Triggering the Smart Advice Toast
     if(typeof Swal !== 'undefined') {
         const Toast = Swal.mixin({
             toast: true,
@@ -309,10 +435,6 @@ const displayCurrentWeather = (data) => {
     }
 };
 
-/*
- * OpenWeatherMap returns 40 timestamps (every 3 hours for 5 days). 
- * I wrote an aggregator logic to filter this into a clean 5-day array showing daily Min/Max temps.
- */
 const displayForecast = (data) => {
     const forecastContainer = document.getElementById('forecast-cards');
     const forecastSection = document.querySelector('.forecast-section');
@@ -367,6 +489,7 @@ const displayForecast = (data) => {
     });
 
     renderForecastTable(dailyData, forecastSection || forecastContainer.parentElement);
+    renderChart(dailyData);
 };
 
 const renderForecastTable = (dailyData, container) => {
@@ -412,14 +535,70 @@ const renderForecastTable = (dailyData, container) => {
     container.appendChild(table);
 };
 
+// 🟢 Interactive Chart 🟢
+const renderChart = (dailyData) => {
+    const ctx = document.getElementById('forecast-chart').getContext('2d');
+    
+    // If there is an old chart, destroy it first
+    if (forecastChartInstance) {
+        forecastChartInstance.destroy();
+    }
 
-// =========================================================
-// 6. Backend Integration & Database Sync
-// =========================================================
+    // Prepare data
+    const labels = dailyData.map(day => new Date(day.dt * 1000).toLocaleDateString('en-US', { weekday: 'short' }));
+    const maxTemps = dailyData.map(day => Math.round(day.temp_max));
+    const minTemps = dailyData.map(day => Math.round(day.temp_min));
 
-/*
- * This function triggers Shimaa's PHP script to save the search history.
- */
+    // Set colors based on the theme (Light/Dark)
+    const isLightMode = document.body.classList.contains('light-mode');
+    const textColor = isLightMode ? '#64748b' : '#94a3b8';
+    const gridColor = isLightMode ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)';
+
+    forecastChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Max Temp (°C)',
+                    data: maxTemps,
+                    borderColor: '#38bdf8', // Accent Color
+                    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                    borderWidth: 3,
+                    tension: 0.4, // Makes the line smooth and elegant
+                    fill: true
+                },
+                {
+                    label: 'Min Temp (°C)',
+                    data: minTemps,
+                    borderColor: '#94a3b8',
+                    backgroundColor: 'transparent',
+                    borderWidth: 2,
+                    borderDash: [5, 5], // Dashed line
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: textColor, font: { family: 'Poppins' } } }
+            },
+            scales: {
+                y: {
+                    grid: { color: gridColor },
+                    ticks: { color: textColor, font: { family: 'Poppins' } }
+                },
+                x: {
+                    grid: { color: gridColor },
+                    ticks: { color: textColor, font: { family: 'Poppins' } }
+                }
+            }
+        }
+    });
+};
+
 const saveCityToHistory = async (city) => {
     try {
         const response = await fetch('api/save_city.php', {
@@ -429,16 +608,13 @@ const saveCityToHistory = async (city) => {
         });
         
         if (response.ok) {
-            await updateSidebar(); // Auto-refresh the sidebar upon successful save
+            await updateSidebar(); 
         }
     } catch (err) {
         console.warn("Database Error: Could not save to history.");
     }
 };
 
-/*
- * Fetches the latest searches to dynamically update the UI sidebar.
- */
 const updateSidebar = async () => {
     try {
         const response = await fetch('api/get_history.php');
@@ -453,8 +629,9 @@ const updateSidebar = async () => {
                 return;
             }
 
+            // 🟢 [New update: Add playClickSound() when clicking a city in the sidebar] 🟢
             sidebarContainer.innerHTML = history.map(item => `
-                <div class="saved-city" onclick="fetchWeatherData('${item.city_name}'); saveCityToHistory('${item.city_name}');">
+                <div class="saved-city" onclick="playClickSound(); fetchWeatherData('${item.city_name}'); saveCityToHistory('${item.city_name}');">
                     ${item.city_name}
                 </div>
             `).join('');
@@ -464,15 +641,12 @@ const updateSidebar = async () => {
     }
 };
 
-
-// =========================================================
-// 7. Event Listeners & Application Initialization
-// =========================================================
-
-// Handling user search input
 document.getElementById('search-form').addEventListener('submit', async (e) => {
     e.preventDefault(); 
     
+    // 🟢 [New update: play click sound when searching] 🟢
+    playClickSound();
+
     const cityInput = document.getElementById('city-input');
     const city = cityInput.value.trim();
     
@@ -481,15 +655,13 @@ document.getElementById('search-form').addEventListener('submit', async (e) => {
         if (isSuccess) {
             await saveCityToHistory(city); 
         }
-        cityInput.value = ''; // Clear input field after search
+        cityInput.value = ''; 
     }
 });
 
-// Setting up Dark/Light Mode Theme Toggle Logic
 const themeToggle = document.getElementById('theme-toggle');
 const body = document.body;
 
-// Persisting user theme preference via LocalStorage
 const currentTheme = localStorage.getItem('theme');
 if (currentTheme === 'light') {
     body.classList.add('light-mode');
@@ -497,6 +669,9 @@ if (currentTheme === 'light') {
 }
 
 themeToggle.addEventListener('click', () => {
+    // 🟢 [New update: play click sound when changing theme] 🟢
+    playClickSound();
+
     body.classList.toggle('light-mode');
     
     if (body.classList.contains('light-mode')) {
@@ -508,7 +683,89 @@ themeToggle.addEventListener('click', () => {
     }
 });
 
-// Firing up essential functions when the application first loads
+// Trick to bypass browser Autoplay Policy
+let isAudioUnlocked = false;
+
+// Listen to the first user click anywhere on the page
+document.addEventListener('click', () => {
+    if (!isAudioUnlocked) {
+        isAudioUnlocked = true; // Autoplay block lifted
+        
+        // If a weather sound is ready but paused by the browser, play it immediately
+        if (currentPlayingSound && currentPlayingSound.paused) {
+            currentPlayingSound.play().catch(e => console.log("Error playing sound:", e));
+        }
+    }
+}, { once: true }); // { once: true } ensures this event runs only once so it doesn't consume performance
+
+// 🟢 Voice Search (Smart voice search with error handling) 🟢
+const voiceBtn = document.getElementById('voice-search-btn');
+const cityInput = document.getElementById('city-input');
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = 'ar-EG'; 
+
+    recognition.onstart = () => {
+        voiceBtn.classList.add('listening');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true, position: 'top', icon: 'info',
+                title: 'Speak now, I am listening...', showConfirmButton: false, timer: 3000
+            });
+        }
+    };
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        cityInput.value = transcript; 
+        
+        playClickSound();
+        document.getElementById('search-form').dispatchEvent(new Event('submit'));
+    };
+
+    // 🟢 Error handling to identify the exact problem 🟢
+    recognition.onerror = (event) => {
+        console.error("Speech Recognition Error:", event.error);
+        voiceBtn.classList.remove('listening');
+        
+        let errorMsg = 'An unknown error occurred.';
+        if (event.error === 'not-allowed') errorMsg = 'Please allow the browser to use the microphone first.';
+        if (event.error === 'network') errorMsg = 'The project must run via Localhost or a strong internet connection.';
+        if (event.error === 'no-speech') errorMsg = 'I could not hear anything, try speaking more clearly.';
+
+        if(typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true, position: 'top', icon: 'error',
+                title: errorMsg, showConfirmButton: false, timer: 4000
+            });
+        }
+    };
+
+    recognition.onend = () => {
+        voiceBtn.classList.remove('listening');
+    };
+
+    voiceBtn.addEventListener('click', () => {
+        playClickSound();
+        recognition.start();
+    });
+} else {
+    voiceBtn.style.display = 'none';
+    console.warn("Speech Recognition API is not supported in this browser.");
+}
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker Registered!', reg))
+        .catch(err => console.log('Service Worker Error', err));
+    });
+    }
+
 window.onload = () => {
     updateSidebar();
     getUserLocation(); 

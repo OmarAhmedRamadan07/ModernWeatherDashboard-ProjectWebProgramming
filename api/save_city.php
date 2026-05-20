@@ -1,13 +1,5 @@
 <?php
-/*
- * =========================================================
- * API Endpoint: Save Searched City to History
- * Project: Modern Weather Dashboard (SUT)  
- * Description: I wrote this logic to handle storing new city
- * searches into our database. It also handles the "Latest on Top" 
- * sorting behavior by removing older duplicates.
- * =========================================================
- */
+
 
 // Including the DB connection I set up in db.php
 include 'db.php';
