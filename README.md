@@ -297,9 +297,3 @@ npm start
 
 - **Frontend** → Push to GitHub → Auto-deploy on Vercel
 - **Backend** → Push to GitHub → Auto-deploy on Railway (root directory: `/backend`)
-
----
-
-## 📄 License
-
-This project was developed for academic purposes as part of the **Web Programming course** at **El Sewedy University of Technology (SUTech)** — Data Science & AI Department, 2026.
